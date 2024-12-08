@@ -9,25 +9,31 @@ async function predictClassification(model, image) {
             .expandDims()
             .toFloat()
   
-        const prediction = model.predict(tensor);
-        const score = await prediction.data();
-        const confidenceScore = Math.max(...score) * 100;
+            const prediction = model.predict(tensor);
+            const score = await prediction.array();  // Mendapatkan array hasil prediksi
+            const confidenceScore = Math.max(...score[0]) * 100;
  
-        const label = confidenceScore <= 50 ? 'Non-cancer' : 'Cancer'; 
-        let suggestion;
- 
-        if(label === 'Cancer') {
-            suggestion = "Segera periksa ke dokter!"
-        }
-        
-        if(label === 'Non-cancer') {
-            suggestion = "Anda sehat!"
-        }
- 
-        return { label, suggestion };
-    } catch (error) {
-        throw new InputError('Terjadi kesalahan dalam melakukan prediksi')
+        // Menentukan hasil klasifikasi berdasarkan probabilitas
+    let result;
+    let suggestion;
+
+    // Ambil probabilitas dari hasil prediksi
+    const cancerProb = score[0][0];  // Asumsi cancer adalah kelas pertama (index 0)
+    const nonCancerProb = score[0][1]; // Asumsi non-cancer adalah kelas kedua (index 1)
+
+    if (cancerProb > 0.5) {
+      result = "Cancer";
+      suggestion = "Segera periksa ke dokter!";
+    } else {
+      result = "Non-cancer";
+      suggestion = "Penyakit kanker tidak terdeteksi.";
     }
+
+    return { result, suggestion, confidenceScore };
+  } catch (error) {
+    throw new InputError("Terjadi kesalahan dalam melakukan prediksi");
+  }
 }
+
  
 module.exports = predictClassification;
